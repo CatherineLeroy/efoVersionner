@@ -1,5 +1,7 @@
 package uk.ac.ebi.spot.efoVersionner;
 
+import com.sun.org.apache.xpath.internal.Arg;
+import org.apache.commons.cli.*;
 import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.io.FileDocumentSource;
 import org.semanticweb.owlapi.io.OWLOntologyDocumentSource;
@@ -21,7 +23,12 @@ public class VersionUpdater {
 
     private String typeEnum = null;
 
+    public VersionUpdater(String[] args) throws Exception {
+        getOptions(args);
+    }
+
     public VersionUpdater() throws IOException {
+
         properties = new Properties();
 
         InputStream input = null;
@@ -149,10 +156,32 @@ public class VersionUpdater {
         this.typeEnum = typeEnum;
     }
 
+    public void getOptions(String[] args) throws Exception {
+        Options options = new Options();
+        options.addOption("t", true, "The type mm, mj or mn indicating how to increment the version number.");
+        options.addOption("i", true, "The path to the efo-release-candidate.owl file");
+
+        CommandLineParser parser = new BasicParser();
+        CommandLine cmd = parser.parse( options, args);
+
+
+        if(cmd.hasOption("i")) {
+            setReleaseCandidateFile(cmd.getOptionValue("i"));
+        }
+        else {
+            throw new Exception ("Option -i providing path to the efo-release-candidate.owl file is required.");
+        }
+        if(cmd.hasOption("t")){
+            setTypeEnum(cmd.getOptionValue("t"));
+        }else{
+            new Exception ("Option -t providing which part of the version number will be incremented is required (eg. : mj for major, mn for minor and mm for most minor.");
+        }
+
+    }
+
     public static void main(String[] args) throws Exception {
-        VersionUpdater vu = new VersionUpdater();
-//        vu.setTypeEnum("mn");
-//        vu.setReleaseCandidateFile("/Users/catherineleroy/Documents/github_project/ExperimentalFactorOntology/ExFactorInOWL/releasecandidate/efo_release_candidate.owl");
+
+        VersionUpdater vu = new VersionUpdater(args);
         vu.updateVersion();
     }
 
