@@ -67,7 +67,8 @@ public class VersionUpdaterTest
 
 
         }catch(Exception e){
-            fail("An excpetion was sent when creating the VersionUpdater object.");
+            e.printStackTrace();
+            fail("An excpetion was sent when creating the VersionUpdater object." );
         }
         assertTrue( true );
     }
