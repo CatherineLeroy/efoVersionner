@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import uk.ac.ebi.spot.efoVersionner.utils.TypeEnum;
 
 import java.io.*;
+import java.text.DateFormatSymbols;
 import java.util.*;
 
 /**
@@ -66,6 +67,7 @@ public class VersionUpdater {
         OWLOntology efo = manager.loadOntologyFromOntologyDocument(owlOntologyDocumentSource, config);
 
         OWLAnnotationProperty owlVersionProperty = factory.getOWLVersionInfo();
+        OWLAnnotationProperty owlCommentProperty = factory.getOWLAnnotationProperty(OWLRDFVocabulary.RDFS_COMMENT.getIRI());
 
         List<OWLOntologyChange> changes = new ArrayList();
 
@@ -78,6 +80,7 @@ public class VersionUpdater {
                 versionNumber = versionNumber.replace("\"", "");
                 String newVersionNumber = versionNumberIncrementer(versionNumber);
 
+
                 RemoveOntologyAnnotation removeAnnotation = new RemoveOntologyAnnotation(efo,annotation);
                 changes.add(removeAnnotation);
 
@@ -88,10 +91,63 @@ public class VersionUpdater {
 
                 break;
             }
+
+            if(annotation.getProperty().equals(owlCommentProperty)){
+                String value = annotation.getValue().toString();
+                String versionNumber = value.replace("\"^^xsd:string", "");
+                versionNumber = versionNumber.replace("\"", "");
+                if(versionNumber.startsWith("Date:")){
+                    RemoveOntologyAnnotation removeAnnotation = new RemoveOntologyAnnotation(efo,annotation);
+                    changes.add(removeAnnotation);
+
+                    String date = getDate();
+                    OWLAnnotation newDateAnnotation = manager.getOWLDataFactory().getOWLAnnotation(owlCommentProperty,manager.getOWLDataFactory().getOWLLiteral(date));
+                    OWLAxiom ax = manager.getOWLDataFactory().getOWLAnnotationAssertionAxiom(efo.getOntologyID().getOntologyIRI(), newDateAnnotation);
+                    changes.addAll(manager.addAxiom(efo,ax));
+
+                }
+            }
+
         }
         manager.applyChanges(changes);
         manager.saveOntology(efo);
 
+    }
+
+    public String getDate(){
+        String date = "";
+        Calendar c = new GregorianCalendar();
+        Date d1 = c.getTime();
+
+        int dayOfMonth =  c.get(Calendar.DAY_OF_MONTH);
+        String day = "";
+        if(dayOfMonth == 1 || dayOfMonth == 21 || dayOfMonth == 31){
+            day = dayOfMonth + "st";
+        }else if (dayOfMonth == 2 || dayOfMonth == 22 ){
+            day = dayOfMonth + "nd";
+        }else if (dayOfMonth == 3 || dayOfMonth == 23){
+            day = dayOfMonth + "rd";
+        }else{
+            day = dayOfMonth + "th";
+        }
+
+        int monthNumber = c.get(Calendar.MONTH);
+        DateFormatSymbols dfs = new DateFormatSymbols();
+        String[] months = dfs.getMonths();
+        String month = months[monthNumber];
+
+
+
+        int year = c.get(Calendar.YEAR);
+
+        date = "Date: " +  day + " " +  month + " " + year;
+
+
+//        c.set(Calendar.HOUR_OF_DAY, 0); //anything 0 - 23
+//        c.set(Calendar.MINUTE, 0);
+//        c.set(Calendar.SECOND, 0);
+//        Date d1 = c.getTime(); //the midnight, that's the first second of the day.
+        return date;
     }
 
 
